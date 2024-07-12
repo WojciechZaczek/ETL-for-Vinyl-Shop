@@ -27,9 +27,22 @@ class Album(Base):
     title = Column(String(100), nullable=False)
     release_year = Column(Integer, nullable=False)
     artist_id = Column(Integer, ForeignKey('artists.artist_id'), nullable=False)
+    album_information_id = Column(Integer, ForeignKey('album_information.album_information_id'), nullable=False)
+
+
+class AlbumInformation(Base):
+    __tablename__ = 'album_information'
+    album_information_id = Column(Integer, primary_key=True, autoincrement=True)
     style = Column(String(50), nullable=False)
     audio_format = Column(String(50), nullable=False)
     album_format = Column(String(50), nullable=False)
+
+
+class Label(Base):
+    __tablename__ = 'label'
+    label_id = Column(Integer, primary_key=True, autoincrement=True)
+    label_name = Column(String(50), nullable=False)
+    address = Column(String(250), nullable=True)
 
 
 class Record(Base):
@@ -38,10 +51,9 @@ class Record(Base):
     serial_no = Column(String(50), nullable=False)
     price = Column(Float, nullable=False)
     record_release_year = Column(Integer, nullable=False)
-    label_name = Column(String(50), nullable=False)
-    address = Column(String(250), nullable=False)
     country = Column(String(50), nullable=False)
     quantity = Column(Integer, nullable=False)
+    label_id = Column(Integer, ForeignKey('label.label_id'), nullable=False)
     album_id = Column(Integer, ForeignKey('albums.album_id'), nullable=False)
 
 
@@ -70,24 +82,38 @@ class Load:
                 self.session.flush()
                 artists.append(artist)
 
+                album_information = AlbumInformation(
+                    style=row['style'],
+                    audio_format=row['audio_format'],
+                    album_format=row['album_format'])
+
+                self.session.add(album_information)
+                self.session.flush()
+                albums.append(album_information)
+
                 album = Album(
                     title=row['title'],
                     release_year=row['release_year'],
                     artist_id=artist.artist_id,
-                    style=row['style'],
-                    audio_format=row['audio_format'],
-                    album_format=row['album_format']
+                    album_information_id=album_information.album_information_id
                 )
                 self.session.add(album)
                 self.session.flush()
                 albums.append(album)
 
+                label = Label(
+                    label_name=row['label_name'],
+                    address=row['address']
+                )
+                self.session.add(label)
+                self.session.flush()
+                albums.append(label)
+
                 record = Record(
                     serial_no=row['serial_no'],
                     price=row['price'],
                     record_release_year=row['record_release_year'],
-                    label_name=row['label_name'],
-                    address=row['address'],
+                    label_id=label.lable_id,
                     country=row['country'],
                     quantity=row['quantity'],
                     album_id=album.album_id
