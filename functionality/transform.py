@@ -1,3 +1,4 @@
+import datetime
 import pandas as pd
 import os
 import re
@@ -5,6 +6,8 @@ import shutil
 import sys
 # sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # add gcloud
 
+
+timestamp = int(datetime.datetime.now().timestamp())
 
 class Transform:
     """Class responsible for transform data from the inbox folder"""
@@ -146,20 +149,38 @@ class Transform:
         df = self.keep_relevant_columns(df)
         df = self.ensure_data_types(df)
         df = self.handle_null_values(df)
+        df = df.drop_duplicates()
         df.to_csv(self.output_file, index=False)
 
         archive_path = os.path.join(self.archive_folder, os.path.basename(self.input_file))
         shutil.move(self.input_file, archive_path)
 
 
-if __name__ == "__main__":
-    from pprint import pprint
-    pprint(sys.path)
-    input_file = os.path.join('inbox', 'vinyl_database_150.csv')
-    output_file = os.path.join('data', 'vinyl_database_150.csv')
-    archive_folder = os.path.join('inbox', 'archive')
+def get_csv_files(folder):
+    return [file for file in os.listdir(folder) if file.endswith('.csv')]
 
-    transformer = Transform(input_file, output_file, archive_folder)
-    transformer.transform_data()
+
+def transform_csv_files(input_folder, output_folder, archive_folder):
+    csv_files = get_csv_files(input_folder)
+
+    if not csv_files:
+        print("Inbox folder is empty")
+    else:
+        for file in csv_files:
+            input_file = os.path.join(input_folder, file)
+            output_file = os.path.join(output_folder, f'vinyl_database_transformed_{timestamp}.csv')
+            transformer = Transform(input_file, output_file, archive_folder)
+            transformer.transform_data()
+            print(f'File {file} has been transformed and archived.')
+
+
+if __name__ == "__main__":
+    input_folder = 'inbox'
+    output_folder = 'data'
+    archive_folder = os.path.join('../airflow/dags/inbox', 'archive')
+    transform_csv_files(input_folder, output_folder, archive_folder)
+
+
+
 
 

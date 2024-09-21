@@ -4,8 +4,9 @@ import pandas as pd
 import os
 import shutil
 
-db = create_engine('mssql+pyodbc://@DESKTOP-8695HOJ/VinylStore?driver=ODBC+Driver+17+for+SQL+Server')
-connection = db.connect()
+# db = create_engine('mssql+pyodbc://@DESKTOP-8695HOJ/VinylStore?driver=ODBC+Driver+17+for+SQL+Server')
+# connection = db.connect()
+connection = None
 
 
 class Load:
@@ -13,30 +14,46 @@ class Load:
         self.transformed_file = transformed_file
         self.archive_folder = archive_folder
 
+    @staticmethod
+    def save_and_load_data(df, table_name, connection, select_query):
+        df.to_sql(name=table_name, con=connection, if_exists='append', index=False)
+        return pd.read_sql(select_query, connection)
+
     def load_data(self):
         try:
             df = pd.read_csv(self.transformed_file)
 
-            df_artists = df[['first_name', 'last_name', 'band_name', 'profile']].drop_duplicates()
-            df_artists.to_sql(name='artists', con=connection, if_exists='append', index=False)
-            artist_ids = pd.read_sql("SELECT artist_id, first_name, last_name, band_name FROM artists", connection)
+            artist_ids = self.save_and_load_data(
+                df[['first_name', 'last_name', 'band_name', 'profile']],
+                'artists',
+                connection,
+                "SELECT artist_id, first_name, last_name, band_name FROM artists"
+            )
 
-            df_album_info = df[['style', 'audio_format', 'album_format']].drop_duplicates()
-            df_album_info.to_sql(name='album_information', con=connection, if_exists='append', index=False)
-            album_info_ids = pd.read_sql(
-                "SELECT album_information_id, style, audio_format, album_format FROM album_information", connection)
+            album_info_ids = self.save_and_load_data(
+                df[['style', 'audio_format', 'album_format']],
+                'album_information',
+                connection,
+                "SELECT album_information_id, style, audio_format, album_format FROM album_information"
+            )
 
             df = df.merge(artist_ids, how='left', on=['first_name', 'last_name', 'band_name'])
             df = df.merge(album_info_ids, how='left', on=['style', 'audio_format', 'album_format'])
 
-            df_albums = df[['title', 'release_year', 'artist_id', 'album_information_id']]
-            df_albums.to_sql('albums', con=connection, if_exists='append', index=False)
-            album_ids = pd.read_sql("SELECT album_id, title, release_year FROM albums", connection)
+            album_ids = self.save_and_load_data(
+                df[['title', 'release_year', 'artist_id', 'album_information_id']],
+                'albums',
+                connection,
+                "SELECT album_id, title, release_year FROM albums"
+            )
             df = df.merge(album_ids, how='left', on=['title', 'release_year'])
 
-            df_labels = df[['label_name', 'address']].drop_duplicates()
-            df_labels.to_sql('label', con=connection, if_exists='append', index=False)
-            label_ids = pd.read_sql("SELECT label_id, label_name, address FROM label", connection)
+            label_ids = self.save_and_load_data(
+                df[['label_name', 'address']],
+                'label',
+                connection,
+                "SELECT label_id, label_name, address FROM label"
+            )
             df = df.merge(label_ids, how='left', on=['label_name', 'address'])
 
             df_records = df[
@@ -57,11 +74,12 @@ class Load:
             connection.close()
 
 
-if __name__ == "__main__":
-    transformed_file = os.path.join('transformed', 'vinyl_database_transformed.csv')
-    archive_folder = os.path.join('archive')
-
-    os.makedirs(archive_folder, exist_ok=True)
-
-    loader = Load(transformed_file, archive_folder)
-    loader.load_data()
+# if __name__ == "__main__":
+#     transformed_folder = 'data'
+#     archive_folder = os.path.join('../airflow/dags/data', 'archive')
+#     for file in os.listdir(transformed_folder):
+#         if file.endswith('.csv'):
+#             transformed_file = os.path.join('../airflow/dags/data', file)
+#             loader = Load(transformed_file, archive_folder)
+#             loader.load_data()
+#             print(f'File {file} has been loaded to database and archive.')

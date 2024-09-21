@@ -136,7 +136,11 @@ class Load:
 
 
 if __name__ == "__main__":
-    archive_folder = os.path.join('archive')
-    transformed_file = os.path.join('data', 'vinyl_database_150.csv')
-    loader = Load(transformed_file, archive_folder)
-    loader.load_data()
+    transformed_folder = 'data'
+    archive_folder = os.path.join('../airflow/dags/data', 'archive')
+    for file in os.listdir(transformed_folder):
+        if file.endswith('.csv'):
+            transformed_file = os.path.join('../airflow/dags/data', file)
+            loader = Load(transformed_file, archive_folder)
+            loader.load_data()
+            print(f'File {file} has been loaded to database and archive.')
