@@ -44,7 +44,7 @@ def load_csv_files(input_folder, archive_folder):
             print(f'File {file} has been loaded to database and archived.')
 
 
-if __name__ == "__main__":
-    transformed_folder = 'data'
-    archive_folder = os.path.join('../airflow/dags/data', 'archive')
-    load_csv_files(transformed_folder, archive_folder)
+# if __name__ == "__main__":
+#     transformed_folder = 'data'
+#     archive_folder = os.path.join('../airflow/dags/data', 'archive')
+#     load_csv_files(transformed_folder, archive_folder)

@@ -13,7 +13,7 @@ class Transform:
     """Class responsible for transform data from the inbox folder"""
 
     def __init__(self, input_file, output_file, archive_folder):
-        self.config_file = os.path.join('config', 'artist_config.csv')
+        self.config_file = os.path.join(f'{os.getcwd()}/dags/functionality/config', 'artist_config.csv')
         self.input_file = input_file
         self.output_file = output_file
         self.archive_folder = archive_folder
@@ -104,6 +104,13 @@ class Transform:
 
         return dataframe
 
+    def get_csv_files(self):
+        return [f"{self.input_file}/{file}" for file in os.listdir(f"{self.input_file}") if file.endswith('.csv')]
+
+    def read_csv_files(self):
+        dfs = [pd.read_csv(file) for file in self.get_csv_files()]
+        import functools
+        return functools.reduce(lambda x, y: pd.concat([x, y]), dfs)
 
 
     def keep_relevant_columns(self, dataframe):
@@ -142,7 +149,7 @@ class Transform:
 
 
     def transform_data(self):
-        df = pd.read_csv(self.input_file)
+        df = self.read_csv_files()
         df = self.rename_columns(df, self.mapping)
         df = self.filter_data(df)
         df = self.split_name(df)
@@ -150,35 +157,40 @@ class Transform:
         df = self.ensure_data_types(df)
         df = self.handle_null_values(df)
         df = df.drop_duplicates()
-        df.to_csv(self.output_file, index=False)
-
-        archive_path = os.path.join(self.archive_folder, os.path.basename(self.input_file))
-        shutil.move(self.input_file, archive_path)
-
-
-def get_csv_files(folder):
-    return [file for file in os.listdir(folder) if file.endswith('.csv')]
-
-
-def transform_csv_files(input_folder, output_folder, archive_folder):
-    csv_files = get_csv_files(input_folder)
-
-    if not csv_files:
-        print("Inbox folder is empty")
-    else:
-        for file in csv_files:
-            input_file = os.path.join(input_folder, file)
-            output_file = os.path.join(output_folder, f'vinyl_database_transformed_{timestamp}.csv')
-            transformer = Transform(input_file, output_file, archive_folder)
-            transformer.transform_data()
-            print(f'File {file} has been transformed and archived.')
+        tmstp = int(datetime.datetime.now().timestamp())
+        df.to_csv(self.output_file + f'/data_{tmstp}.csv', index=False)
+        print(df)
+ 
+        print('Heeeeeeeey')
+        for file in self.get_csv_files():
+            # filename = file.split('/')[-1]
+            shutil.move(file, self.archive_folder)
 
 
-if __name__ == "__main__":
-    input_folder = 'inbox'
-    output_folder = 'data'
-    archive_folder = os.path.join('../airflow/dags/inbox', 'archive')
-    transform_csv_files(input_folder, output_folder, archive_folder)
+# def get_csv_files(folder):
+#     return [file for file in os.listdir(folder) if file.endswith('.csv')]
+
+
+# def transform_csv_files(input_folder, output_folder, archive_folder):
+#     csv_files = get_csv_files(input_folder)
+
+#     if not csv_files:
+#         print("Inbox folder is empty")
+#     else:
+#         for file in csv_files:
+#             input_file = os.path.join(input_folder, file)
+#             output_file = os.path.join(output_folder, f'vinyl_database_transformed_{timestamp}.csv')
+#             transformer = Transform(input_file, output_file, archive_folder)
+#             transformer.transform_data()
+#             print(f'File {file} has been transformed and archived.')
+
+
+# if __name__ == "__main__":
+#     print(int(datetime.datetime.now().timestamp()))
+#     input_folder = 'inbox'
+#     output_folder = 'data'
+#     archive_folder = os.path.join('../airflow/dags/inbox', 'archive')
+#     transform_csv_files(input_folder, output_folder, archive_folder)
 
 
 

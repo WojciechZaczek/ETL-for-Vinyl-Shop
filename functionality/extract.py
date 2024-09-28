@@ -13,7 +13,7 @@ class Extract:
         self.archive_folder = archive_folder if archive_folder else "/source/archive"
 
     def get_csv_files(self):
-        return [file for file in os.listdir(f"{os.getcwd()}/dags{self.source_folder}") if file.endswith('.csv')]
+        return [file for file in os.listdir(f"{self.source_folder}") if file.endswith('.csv')]
 
     def extract_files_to_inbox(self):
         csv_files = self.get_csv_files()
