@@ -108,6 +108,7 @@ class Transform:
         return [f"{self.input_file}/{file}" for file in os.listdir(f"{self.input_file}") if file.endswith('.csv')]
 
     def read_csv_files(self):
+        # dfs = [self.check_schema(file) for file in self.get_csv_files()]
         dfs = [pd.read_csv(file) for file in self.get_csv_files()]
         import functools
         return functools.reduce(lambda x, y: pd.concat([x, y]), dfs)
@@ -159,9 +160,6 @@ class Transform:
         df = df.drop_duplicates()
         tmstp = int(datetime.datetime.now().timestamp())
         df.to_csv(self.output_file + f'/data_{tmstp}.csv', index=False)
-        print(df)
- 
-        print('Heeeeeeeey')
         for file in self.get_csv_files():
             # filename = file.split('/')[-1]
             shutil.move(file, self.archive_folder)
