@@ -1,50 +1,54 @@
-import pandas as pd
-import os
-import shutil
-from functionality.connections import create_conn_engine
+from functionality.connections import create_conn_engine_trust
 from functionality.mapping import column_table_mapping
+import os
+import pandas as pd
+import shutil
 
-
-#  to_sql -> data.to_sql('Winyle', con=engine, if_exists='append', index=False)
-#  engine = create_conn_engine("localhost_mssql")
 
 class Load:
-    def __init__(self, transformed_file, archive_folder):
-        self.transformed_file = transformed_file
+    """
+    Class responsible for loading transformed data into the database.
+    """
+    def __init__(self, transformed_folder: str, archive_folder: str) -> None:
+        """
+        Initialize the Load class with the folder paths for transformed data and archived files.
+
+        :param transformed_folder: Path to the folder containing transformed CSV files.
+        :param archive_folder: Path to the folder where processed files will be archived.
+        """
+        self.transformed_folder = transformed_folder
         self.archive_folder = archive_folder
-        self.engine = create_conn_engine("mssql_connection")
+        self.engine = create_conn_engine_trust(dbname='VinylStore')
 
-    def load_data(self):
-        df = pd.read_csv(self.transformed_file)
-        for table_name, columns in column_table_mapping.items():
-            table_columns = [col for col in df.columns if col in columns]
-            if not table_columns:
-                continue
-            table_data = df[table_columns]
-            table_data.to_sql(table_name, con=self.engine, if_exists='append', index=False)
+    def load_data(self) -> None:
+        """
+        Load data from CSV files into the database and archive them.
 
-        archive_path = os.path.join(self.archive_folder, os.path.basename(self.transformed_file))
-        shutil.move(f'{self.transformed_file}', archive_path)
-        print("Data have been loaded to database ")
+        This method reads all CSV files in the transformed folder, loads their data into the database,
+        and then moves the processed files to the archive folder. If there are no CSV files to process,
+        the method ends without doing anything.
+        """
+        csv_files = [file for file in os.listdir(self.transformed_folder) if file.endswith('.csv')]
 
+        if not csv_files:
+            print("No data to load. Process has been completed.")
+            return
 
-def get_csv_files(folder):
-    return [file for file in os.listdir(folder) if file.endswith('.csv')]
-
-
-def load_csv_files(input_folder, archive_folder):
-    csv_files = get_csv_files(input_folder)
-    if not csv_files:
-        print("Data folder is empty")
-    else:
         for file in csv_files:
-            transformed_file = os.path.join(input_folder, file)
-            loader = Load(transformed_file, archive_folder)
-            loader.load_data()
-            print(f'File {file} has been loaded to database and archived.')
+            file_path = os.path.join(self.transformed_folder, file)
 
+            if not os.path.exists(file_path) or not os.path.getsize(file_path):
+                print(f"File {file} do not exist.")
+                continue
 
-# if __name__ == "__main__":
-#     transformed_folder = 'data'
-#     archive_folder = os.path.join('../airflow/dags/data', 'archive')
-#     load_csv_files(transformed_folder, archive_folder)
+            df = pd.read_csv(file_path)
+            for table_name, columns in column_table_mapping.items():
+                table_columns = [col for col in df.columns if col in columns]
+                if not table_columns:
+                    continue
+                table_data = df[table_columns]
+                table_data.to_sql(table_name, con=self.engine, if_exists='append', index=False)
+
+            archive_path = os.path.join(self.archive_folder, os.path.basename(self.transformed_folder))
+            shutil.move(file_path, archive_path)
+            print("Data has been loaded to database.")
