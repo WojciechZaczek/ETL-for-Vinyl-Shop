@@ -197,7 +197,7 @@ class Transform:
         df = self.read_csv_files()
         if df is None:
             print("No data to transform. Skipping")
-            return
+            return None
         df = rename_columns(df, self.mapping)
         df = self.filter_data(df)
         df = self.split_name(df)

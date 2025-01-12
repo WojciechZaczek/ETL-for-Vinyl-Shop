@@ -32,7 +32,7 @@ class Load:
 
         if not csv_files:
             print("No data to load. Process has been completed.")
-            return
+            return None
 
         for file in csv_files:
             file_path = os.path.join(self.transformed_folder, file)
