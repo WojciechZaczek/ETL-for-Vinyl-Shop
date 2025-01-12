@@ -1,7 +1,7 @@
 import datetime
 import os
 import shutil
-from typing import  Optional
+from typing import Optional
 
 
 timestamp = int(datetime.datetime.now().timestamp())
